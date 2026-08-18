@@ -6,6 +6,7 @@ export const ENV = {
   isProduction: false,
   forgeApiUrl: "",
   forgeApiKey: "",
+  spaOrigin: "",
 };
 
 type EnvRecord = Record<string, string | undefined>;
@@ -23,4 +24,5 @@ export function configureEnv(source: EnvRecord) {
   ENV.isProduction = source.NODE_ENV === "production";
   ENV.forgeApiUrl = source.BUILT_IN_FORGE_API_URL ?? "";
   ENV.forgeApiKey = source.BUILT_IN_FORGE_API_KEY ?? "";
+  ENV.spaOrigin = source.SPA_ORIGIN ?? "";
 }

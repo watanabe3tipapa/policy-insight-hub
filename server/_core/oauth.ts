@@ -2,6 +2,7 @@ import { COOKIE_NAME, ONE_YEAR_MS, OAUTH_STATE_COOKIE, decodeOAuthState } from "
 import { parse as parseCookieHeader, serialize } from "cookie";
 import * as db from "../db";
 import { getSessionCookieOptions } from "./cookies";
+import { ENV } from "./env";
 import { sdk } from "./sdk";
 
 const json = (body: unknown, status: number): Response =>
@@ -9,6 +10,37 @@ const json = (body: unknown, status: number): Response =>
     status,
     headers: { "Content-Type": "application/json" },
   });
+
+/**
+ * Mints the OAuth `state` cookie on the API origin. In the split deployment the
+ * SPA (GitHub Pages) and the callback (Cloudflare Worker) live on different
+ * origins, so a cookie set from the SPA page would never reach the callback.
+ * The client POSTs its one-time nonce here instead and the callback validates
+ * the state against this same-origin cookie.
+ */
+export async function handleOAuthStart(req: Request): Promise<Response> {
+  try {
+    const body = (await req.json()) as { nonce?: unknown };
+    if (typeof body?.nonce !== "string" || body.nonce.length === 0) {
+      return json({ error: "nonce is required" }, 400);
+    }
+    const stateCookie = serialize(OAUTH_STATE_COOKIE, body.nonce, {
+      path: "/",
+      secure: true,
+      sameSite: "none",
+      maxAge: 600,
+    });
+    return new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+        "Set-Cookie": stateCookie,
+      },
+    });
+  } catch {
+    return json({ error: "invalid body" }, 400);
+  }
+}
 
 export async function handleOAuthCallback(req: Request): Promise<Response> {
   const url = new URL(req.url);
@@ -60,9 +92,10 @@ export async function handleOAuthCallback(req: Request): Promise<Response> {
     });
 
     // Redirect back to the client origin. In the split deployment (GitHub Pages
-    // frontend + Worker API) the callback URL carried in `state` points at the
-    // client origin, so this returns the browser to the SPA, not the Worker.
-    const returnOrigin = redirectUri ? new URL(redirectUri).origin : url.origin;
+    // frontend + Worker API) the SPA origin is set explicitly via SPA_ORIGIN,
+    // otherwise we fall back to the origin of the callback URL carried in
+    // `state` (which matches in the same-origin local setup).
+    const returnOrigin = ENV.spaOrigin || (redirectUri ? new URL(redirectUri).origin : url.origin);
 
     return new Response(null, {
       status: 302,

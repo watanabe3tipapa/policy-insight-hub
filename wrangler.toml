@@ -6,20 +6,20 @@ compatibility_date = "2026-08-18"
 # Point the client at this Worker by setting VITE_API_URL at build time, e.g.
 #   VITE_API_URL=https://policy-insight-hub-api.<account>.workers.dev/api/trpc
 
-# Cloudflare D1 (SQLite) database binding. Create it with:
-#   wrangler d1 create policy-insight-hub
-# then paste the returned database_id here.
-# [[d1_databases]]
-# binding = "DB"
-# database_name = "policy-insight-hub"
-# database_id = "<database_id>"
+# Cloudflare D1 (SQLite) database binding.
+[[d1_databases]]
+binding = "DB"
+database_name = "policy-insight-hub"
+database_id = "ac5229fc-bed8-4011-8c6b-fcda3e7274a8"
+migrations_dir = "drizzle"
 
 # Non-secret environment variables that mirror the app configuration.
 [vars]
-VITE_APP_ID = ""
+VITE_APP_ID = "BFy8YVRhcfRANAz7NzE7RP"
 OAUTH_SERVER_URL = "https://api.manus.im"
-OWNER_OPEN_ID = ""
+OWNER_OPEN_ID = "a5zQdSXmSJqJiSn8W8pjUm"
 BUILT_IN_FORGE_API_URL = "https://forge.manus.ai"
+SPA_ORIGIN = "https://watanabe3tipapa.github.io"
 
 # Secrets are set separately, do not commit them here:
 #   wrangler secret put JWT_SECRET
