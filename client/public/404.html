@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Policy Insight Hub</title>
+    <script>
+      // GitHub Pages serves this file for any unknown path. Because the SPA is
+      // a single index.html, we rewrite deep links into the URL hash so the app
+      // can restore the route (see index.html bootstrap) without a 404.
+      (function () {
+        var base = "/policy-insight-hub/";
+        var path = location.pathname.slice(base.length) || "/";
+        var q = location.search || "";
+        location.replace(base + "index.html#" + path + q);
+      })();
+    </script>
+  </head>
+  <body></body>
+</html>

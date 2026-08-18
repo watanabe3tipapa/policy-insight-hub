@@ -1,0 +1,199 @@
+# policy-insight-hub
+
+[![Version](https://img.shields.io/badge/version-v1.0.0-blue.svg)](https://github.com/watanabe3tipapa/policy-insight-hub)
+[![Issues](https://img.shields.io/github/issues/watanabe3tipapa/policy-insight-hub.svg)](https://github.com/watanabe3tipapa/policy-insight-hub/issues)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
+**EBPM. Collect policy data relentlessly, structure it, make it shareable.**
+
+policy-insight-hub is a **policy data hub** for Evidence-Based Policy Making (EBPM).
+It manages the data registry, indicator dictionary, time-series observations, review logs,
+and international policy essences in one structure, and keeps the evidence up to date
+through external Kitesurf Worker collection and startup stale detection. Data can be
+carried out to analysis tools as a standard SQLite .db file.
+
+[日本語](README.md) | [English](README_EN.md)
+
+## Concept
+
+### Why a "shareable policy data hub"
+
+EBPM means designing and validating policy with evidence. But if the data, definitions,
+and decision history stay scattered, evidence never spreads into practice. This tool
+binds them into one structure — "registry → dictionary → observation → record → evaluation" —
+so that anyone can reproduce and share the evidence.
+
+| Practice | policy-insight-hub's counterpart |
+|---|---|
+| Make clear where the evidence lives | Data registry (source, owner, updated at) |
+| Share the meaning and history of KPIs | Indicator dictionary (definition, formula, target, source linkage) |
+| Track measured values continuously | Time-series dashboard (Recharts charts) |
+| Keep the decision history for later learning | Review logs (agenda, findings, action tracking) |
+| Keep external information up to date | Kitesurf Worker collection + startup stale detection |
+| Compare international evidence by criteria | Policy essences (5 evaluation axes) |
+| Carry evidence to analysis tools | SQLite .db data exchange |
+
+### Consideration: what EBPM tools must assume
+
+1. **Make the evidence trail explicit** — sources, provenance, and timestamps must be traceable in code and data
+2. **Share the definitions** — the same name with different definitions cannot be compared; align assumptions in the dictionary
+3. **Keep the decision history** — the learning of policy improvement survives staff changes
+4. **Stay fresh** — data sources quietly break; startup stale detection and refresh keep everything current
+5. **Never stop on failure** — DB-unavailable or fetch failures are absorbed as explicit skips and never block server startup
+6. **Guard the roles** — Manus OAuth + admin/general-user access control for writes
+
+## Features
+
+- **Policy dashboard**: visualizes registered time-series with Recharts line/bar charts
+- **Data registry**: register, list, search, edit, last-updated display, CSV/JSON export
+- **Indicator dictionary**: definition, formula, target, data-source linkage, freshness badges, CSV/JSON export
+- **Review logs**: track agenda, findings, action items, assignees, and status
+- **Info collection (Kitesurf)**: Worker URL configuration, collection logs, and source-candidate review
+- **Startup stale refresh**: stale detection → 15-minute lease against duplicate runs → audit state saved to the dashboard
+- **International EBPM policy essences**: compare across 5 axes — evidence transparency, design credibility, context fit, equity impact, transferability
+- **Data exchange (SQLite .db)**: exports a normalized standard format and verifies format/counts in the browser (no server upload)
+- **Authentication & role control**: Manus OAuth + procedure-level admin/general-user access control on tRPC
+- **Modern SPA**: Vite + React 19 + TypeScript + tRPC v11 + drizzle-orm (Cloudflare D1)
+
+## Quick Start
+
+### Prerequisites
+
+| Tool | Required version | Check command |
+|---|---|---|
+| Node.js | >= 20 | `node --version` |
+| pnpm | >= 9 | `pnpm --version` |
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/watanabe3tipapa/policy-insight-hub.git
+cd policy-insight-hub
+```
+
+### 2. Install and run
+
+```bash
+pnpm install
+pnpm dev        # Dev: http://localhost:3000
+pnpm build && pnpm start   # Production: http://localhost:3000
+```
+
+### 3. Enable authentication
+
+Set the environment variables for Manus OAuth (see `.env.example`; fill in real values as needed):
+
+```bash
+export VITE_APP_ID=...           # Manus OAuth application ID
+export VITE_OAUTH_PORTAL_URL=... # OAuth portal URL
+export JWT_SECRET=...            # Session JWT signing key (secret)
+```
+
+## Environment Variables
+
+| Variable | Description |
+|---|---|
+| `VITE_APP_ID` | Manus OAuth application ID (login unavailable when unset) |
+| `VITE_OAUTH_PORTAL_URL` | Manus OAuth portal URL (path starting at `/app-auth`) |
+| `OAUTH_SERVER_URL` | OAuth API base URL (default `https://api.manus.im`) |
+| `OWNER_OPEN_ID` | openId of the administrator (admin role) |
+| `BUILT_IN_FORGE_API_URL` | Forge API URL (default `https://forge.manus.ai`) |
+| `JWT_SECRET` | Session JWT signing key (secret; never commit) |
+| `BUILT_IN_FORGE_API_KEY` | Forge API key (secret; never commit) |
+| `PORT` | Preferred local server port (default 3000) |
+
+## Client Build-time Variables
+
+| Variable | Description |
+|---|---|
+| `VITE_API_URL` | API base URL (e.g. the Cloudflare Worker's `/api/trpc`; falls back to same-origin `/api/trpc`) |
+| `VITE_BASE_PATH` | Static base for a custom domain (default `/policy-insight-hub/`) |
+
+## Architecture
+
+```
+policy-insight-hub/
+├── client/                 # React 19 SPA (served statically from GitHub Pages)
+│   ├── src/
+│   │   ├── pages/          # PolicyDashboard / DataSources / Indicators / Reviews /
+│   │   │                   # KitesurfIntegration / PolicyEssences / DataExchange
+│   │   ├── components/     # DashboardLayout / PageFrame / FreshnessBadge / ui (shadcn-style) etc.
+│   │   ├── lib/            # trpc.ts / dataExchange.ts (SQLite .db exchange)
+│   │   └── _core/          # useAuth.ts (OAuth session)
+│   └── public/             # 404.html (deep-link hash restore) / runtime/
+├── server/                 # API (Cloudflare Worker + Node adapter sharing one fetch handler)
+│   ├── _core/              # handler.ts / trpc.ts / context.ts / oauth.ts / sdk.ts / env.ts / index.ts
+│   ├── worker/index.ts     # Cloudflare Worker entry
+│   ├── routers/            # policy / kitesurf / internationalPolicy
+│   ├── db.ts               # D1 helpers (bindD1Database binding injection)
+│   └── startupRefresh.ts   # startup stale detection + Kitesurf refresh
+├── shared/                 # const.ts (cookie / OAuth constants) / types.ts
+├── drizzle/                # schema.ts / 0000_talented_blade.sql (migration)
+├── scripts/                # capture-screens.mjs (visual verification)
+└── docs/                   # design notes
+```
+
+## API
+
+tRPC (`/api/trpc`):
+
+| namespace | procedures | purpose |
+|---|---|---|
+| `system` | `health` / `notifyOwner` | health check / notify owner |
+| `auth` | `me` / `logout` | session lookup / logout |
+| `policy.dataSources` | `list` / `create` / `update` | data registry |
+| `policy.indicators` | `list` / `create` / `update` | indicator dictionary |
+| `policy.indicators.observations` | `list` / `create` | time-series observations |
+| `policy.reviews` | `list` / `create` / `update` / `delete` | review logs |
+| `policy.reviews.actions` | `create` / `update` / `delete` | review actions |
+| `kitesurf` | `config` / `startupAudit` / `saveConfig` / `updateRefreshSettings` / `runs` / `candidates` / `createRun` / `updateRun` / `createCandidate` / `updateCandidate` | collection & startup refresh |
+| `internationalPolicy.sources` | `list` / `create` | international policy sources |
+| `internationalPolicy.essences` | `list` / `create` | policy essences |
+| `internationalPolicy.contexts` | `upsert` | social context |
+| `internationalPolicy.reviews` | `upsert` | evaluation reviews |
+
+Other HTTP routes:
+
+| Endpoint | Purpose |
+|---|---|
+| `/api/oauth/callback` | Manus OAuth callback |
+| `/manus-storage/*` | storage proxy |
+
+## Cloudflare Worker Integration
+
+policy-insight-hub runs on **GitHub Pages (SPA) + Cloudflare Workers (API) + Cloudflare D1 (SQLite)**.
+
+- **Startup stale refresh**: only when the last success is older than `staleAfterHours`, the server calls
+  the Kitesurf Worker's `POST /collect` on startup. A 15-minute lease prevents duplicate runs, and the
+  audit state (`lastStartupCheckAt` / `lastStartupOutcome` / `lastStartupMessage`) is saved to D1 and
+  reflected on the management screen
+- **wrangler.toml**: `server/worker/index.ts` is set as `main`. Enable the D1 binding by pasting the
+  `database_id` returned by `wrangler d1 create policy-insight-hub`
+- **Secrets**: `JWT_SECRET` and `BUILT_IN_FORGE_API_KEY` are never committed; set them with
+  `wrangler secret put`
+
+```bash
+pnpm worker:dev       # develop the Worker locally
+pnpm worker:deploy    # deploy the Worker
+pnpm db:migrate       # apply migrations to D1 (--remote)
+```
+
+## Documentation
+
+- [DEV-MEMO](DEV-MEMO.md) — development memo (tech stack, configuration values, implementation history)
+
+## Testing
+
+```sh
+pnpm check        # type check (tsc --noEmit)
+pnpm test         # Vitest (22 tests: business API / startup refresh / migration replay / data exchange)
+pnpm screenshot   # Playwright visual verification of every page (output to screenshots/)
+```
+
+## License
+
+MIT License. See [LICENSE](LICENSE) for details.
+
+## Contact
+
+GitHub: [https://github.com/watanabe3tipapa/policy-insight-hub](https://github.com/watanabe3tipapa/policy-insight-hub)

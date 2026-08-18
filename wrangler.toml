@@ -1,0 +1,26 @@
+name = "policy-insight-hub-api"
+main = "server/worker/index.ts"
+compatibility_date = "2026-08-18"
+
+# The API backend runs on Cloudflare Workers; the SPA is served from GitHub Pages.
+# Point the client at this Worker by setting VITE_API_URL at build time, e.g.
+#   VITE_API_URL=https://policy-insight-hub-api.<account>.workers.dev/api/trpc
+
+# Cloudflare D1 (SQLite) database binding. Create it with:
+#   wrangler d1 create policy-insight-hub
+# then paste the returned database_id here.
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "policy-insight-hub"
+# database_id = "<database_id>"
+
+# Non-secret environment variables that mirror the app configuration.
+[vars]
+VITE_APP_ID = ""
+OAUTH_SERVER_URL = "https://api.manus.im"
+OWNER_OPEN_ID = ""
+BUILT_IN_FORGE_API_URL = "https://forge.manus.ai"
+
+# Secrets are set separately, do not commit them here:
+#   wrangler secret put JWT_SECRET
+#   wrangler secret put BUILT_IN_FORGE_API_KEY
