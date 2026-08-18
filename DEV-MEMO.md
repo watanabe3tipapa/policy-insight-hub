@@ -66,9 +66,16 @@ Node エントリは `process.env`、Worker エントリは bindings を渡す�
 | `OWNER_OPEN_ID` | 管理者（admin ロール）の openId。未指定は空 |
 | `BUILT_IN_FORGE_API_URL` | `https://forge.manus.ai` |
 | `BUILT_IN_FORGE_API_KEY` | シークレット（`wrangler secret put`） |
+| `SPA_ORIGIN` | 分割デプロイ時の SPA オリジン（OAuth コールバックのリダイレクト先） |
 | `VITE_OAUTH_PORTAL_URL` | OAuth ポータル（`/app-auth` 起点） |
 | `VITE_API_URL` | クライアントが API を指す URL（ビルド時） |
 | `PORT` | ローカル Node サーバー優先ポート（既定 3000、使用中なら +19 まで探索） |
+
+### デプロイ（現行）
+- SPA: **GitHub Pages** `https://watanabe3tipapa.github.io/policy-insight-hub/`（`.github/workflows/deploy-pages.yml` が push 時に `vite build` → Pages へ自動配信）
+- API: **Cloudflare Worker** `https://policy-insight-hub-api.watanabe3ti.workers.dev`（`pnpm exec wrangler deploy`）
+- DB: **D1** `policy-insight-hub`（`ac5229fc-bed8-4011-8c6b-fcda3e7274a8`、region APAC、`0000_talented_blade.sql` 適用済み）
+- ビルド時 env（Pages workflow）: `VITE_APP_ID` / `VITE_OAUTH_PORTAL_URL` / `VITE_API_URL`
 
 ### vite.config.ts
 - `base`: development は `/`、production は `VITE_BASE_PATH || "/policy-insight-hub/"`
@@ -79,9 +86,14 @@ Node エントリは `process.env`、Worker エントリは bindings を渡す�
 
 ### wrangler.toml
 - `name = "policy-insight-hub-api"`、`main = "server/worker/index.ts"`、`compatibility_date = "2026-08-18"`
-- `[vars]`: `VITE_APP_ID`, `OAUTH_SERVER_URL`, `OWNER_OPEN_ID`, `BUILT_IN_FORGE_API_URL`
-- D1 binding はコメントアウト済み。使用時は `wrangler d1 create policy-insight-hub` で作成し `database_id` を入力
-- `JWT_SECRET`, `BUILT_IN_FORGE_API_KEY` はシークレットとして別途設定（コミット禁止）
+- `[vars]`: `VITE_APP_ID`, `OAUTH_SERVER_URL`, `OWNER_OPEN_ID`, `BUILT_IN_FORGE_API_URL`, `SPA_ORIGIN`
+- D1 binding: `binding = "DB"`、`database_id = "ac5229fc-bed8-4011-8c6b-fcda3e7274a8"`、`migrations_dir = "drizzle"`（`migrations_dir` は wrangler.toml トップレベル不可・`[[d1_databases]]` 内に置く）
+- `JWT_SECRET`, `BUILT_IN_FORGE_API_KEY` はシークレット（`wrangler secret put` 済み・コミット禁止）
+
+### クロスオリジン（分割デプロイ対応）
+- **CORS**: `server/_core/handler.ts` の `corsHeaders()` がリクエスト `Origin` をエコーし `Access-Control-Allow-Credentials: true` を付与。OPTIONS プリフライトは 204 を返す（`Authorization` ヘッダ許可）
+- **OAuth state cookie**: SPA（GH Pages）とコールバック（Worker）が別オリジンのため、`__Host-oauth_state` を SPA からは渡せない。`POST /api/oauth/start` が nonce を受け取り Worker オリジンに state cookie を立てる（`server/_core/oauth.ts` の `handleOAuthStart`）。`client/src/const.ts` の `startLogin()` は `VITE_API_URL` 設定時のみこれを先に呼ぶ
+- **コールバック後リダイレクト**: `handleOAuthCallback` の returnOrigin は `ENV.spaOrigin`（`SPA_ORIGIN`）を最優先。未設定時は従来通り state 内 redirectUri のオリジン
 
 ### drizzle.config.ts
 - `dialect: "sqlite"`、`driver: "d1-http"`、`dbCredentials.wranglerConfigPath = "wrangler.toml"`
@@ -159,6 +171,9 @@ users / data_sources / indicators / indicator_observations / reviews / review_ac
 - DB を MySQL → SQLite/D1 移植（`drizzle-orm/d1` + `bindD1Database` 注入）、`mysql2` 依存削除
 - `.manus/`→`.runtime/`、`__manus__`→`runtime/`、`.manus-logs`→`.runtime-logs` にリネーム
 - `template.json`、ルート/`client/public`/`dist/public` の `.gitkeep` 削除
+- **初回デプロイ（v1.0.0）**: wrangler 追加、Worker デプロイ、D1 作成 + マイグレーション適用、シークレット設定、GitHub Pages 有効化 + `deploy-pages.yml`（push 時自動配信）
+- **クロスオリジン対応**: CORS（Origin エコー + credentials）、`POST /api/oauth/start`（state cookie を API オリジンに発行）、`SPA_ORIGIN` によるコールバック後リダイレクト。`startLogin` は `VITE_API_URL` 設定時に `oauth/start` を先に呼ぶ
+- **Pages ワークフロー修正**: `pnpm/action-setup` に `version` を明示すると package.json の `packageManager` と競合（`ERR_PNPM_BAD_PM_VERSION`）→ `version` を省略し packageManager を参照させる
 
 ## 備考・注意点
 
