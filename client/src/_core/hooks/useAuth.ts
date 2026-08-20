@@ -1,5 +1,20 @@
 import { trpc } from "@/lib/trpc";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
+
+const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === "true";
+
+const DEMO_USER = {
+  id: 0,
+  openId: "demo-user",
+  username: "demo",
+  name: "Demo User",
+  email: "demo@example.com",
+  role: "admin" as const,
+  loginMethod: "demo",
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  lastSignedIn: new Date(),
+};
 
 export function useAuth() {
   const utils = trpc.useUtils();
@@ -7,12 +22,7 @@ export function useAuth() {
   const meQuery = trpc.auth.me.useQuery(undefined, {
     retry: false,
     refetchOnWindowFocus: false,
-  });
-
-  const loginMutation = trpc.auth.login.useMutation({
-    onSuccess: () => {
-      utils.auth.me.invalidate();
-    },
+    enabled: !DEMO_MODE,
   });
 
   const logoutMutation = trpc.auth.logout.useMutation({
@@ -21,13 +31,6 @@ export function useAuth() {
       utils.auth.me.invalidate();
     },
   });
-
-  const login = useCallback(
-    async (password: string) => {
-      await loginMutation.mutateAsync({ password });
-    },
-    [loginMutation],
-  );
 
   const logout = useCallback(async () => {
     try {
@@ -38,14 +41,21 @@ export function useAuth() {
     }
   }, [logoutMutation, utils]);
 
+  const user = useMemo(() => {
+    if (DEMO_MODE) return DEMO_USER;
+    return meQuery.data ?? null;
+  }, [DEMO_MODE, meQuery.data]);
+
+  const loading = useMemo(() => {
+    if (DEMO_MODE) return false;
+    return meQuery.isLoading || logoutMutation.isPending;
+  }, [DEMO_MODE, meQuery.isLoading, logoutMutation.isPending]);
+
   return {
-    user: meQuery.data ?? null,
-    loading: meQuery.isLoading || logoutMutation.isPending,
-    loginPending: loginMutation.isPending,
-    error: meQuery.error ?? loginMutation.error ?? logoutMutation.error ?? null,
-    isAuthenticated: Boolean(meQuery.data),
-    login,
-    logout,
-    refresh: () => meQuery.refetch(),
+    user,
+    loading,
+    isAuthenticated: Boolean(user),
+    logout: DEMO_MODE ? () => {} : logout,
+    refresh: DEMO_MODE ? () => {} : () => meQuery.refetch(),
   };
 }

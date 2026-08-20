@@ -105,21 +105,29 @@ pnpm dev        # 開発: http://localhost:3000
 pnpm build && pnpm start   # 本番: http://localhost:3000
 ```
 
-### 3. 認証を有効化する
-
-管理者パスワードログインのための環境変数を `.env.example` を参考に設定します（実値は環境に応じて）：
+### デモモード（認証なしで全画面確認・LP用）
 
 ```bash
-export ADMIN_PASSWORD=...   # 管理者パスワード（シークレット）
-export JWT_SECRET=...       # セッション JWT の署名キー（シークレット）
+VITE_DEMO_MODE=true pnpm dev
+```
+- 管理者ユーザー「Demo User」として自動ログイン状態になります
+- ログイン画面をスキップし、全ページ（ダッシュボード・データ台帳・指標辞書・レビュー・情報収集・政策エッセンス・データ交換）にアクセス可能
+- **ローカル開発専用** — 本番ビルド/デプロイでは `false` のままにしてください
+
+### 3. 認証を有効化する
+
+ユーザー名 + パスワードログインのための環境変数を `.env.example` を参考に設定します（実値は環境に応じて）：
+
+```bash
+export ADMIN_USERNAME=admin   # 初回ログイン時に admin ロールになるユーザー名
+export JWT_SECRET=...         # セッション JWT の署名キー（シークレット）
 ```
 
 ## 環境変数
 
 | 変数 | 説明 |
 |---|---|
-| `ADMIN_PASSWORD` | 管理者パスワード（シークレット、コミット禁止。未設定ならログイン不可） |
-| `OWNER_OPEN_ID` | 管理者（admin ロール）の openId |
+| `ADMIN_USERNAME` | 初回ログイン時に admin ロールで自動作成されるユーザー名 |
 | `BUILT_IN_FORGE_API_URL` | Forge API の URL（既定 `https://forge.manus.ai`） |
 | `JWT_SECRET` | セッション JWT の署名キー（シークレット、コミット禁止） |
 | `BUILT_IN_FORGE_API_KEY` | Forge API キー（シークレット、コミット禁止） |
@@ -133,6 +141,7 @@ export JWT_SECRET=...       # セッション JWT の署名キー（シークレ
 | `VITE_BASE_PATH` | カスタムドメイン使用時の静的 base（既定 `/policy-insight-hub/`） |
 | `VITE_ANALYTICS_ENDPOINT` | Umami アナリティクスのエンドポイント（ビルド時設定時のみ注入） |
 | `VITE_ANALYTICS_WEBSITE_ID` | Umami の website ID（同上） |
+| `VITE_DEMO_MODE` | `true` で認証をバイパスしデモユーザーで全機能アクセス可能（ローカル開発専用） |
 
 ## アーキテクチャ
 
@@ -192,8 +201,8 @@ policy-insight-hub は **GitHub Pages（SPA）+ Cloudflare Workers（API）+ Clo
   監査状態（`lastStartupCheckAt` / `lastStartupOutcome` / `lastStartupMessage`）を D1 に保存して管理画面へ反映します
 - **wrangler.toml**: `server/worker/index.ts` を `main` に設定。D1 binding は
   `wrangler d1 create policy-insight-hub` で作成した `database_id` を入力して有効化します
-- **シークレット**: `JWT_SECRET` と `BUILT_IN_FORGE_API_KEY` と `ADMIN_PASSWORD` はコミットせず
-  `wrangler secret put` で設定します
+- **シークレット**: `JWT_SECRET` と `BUILT_IN_FORGE_API_KEY` はコミットせず
+  `wrangler secret put` で設定します（パスワードは各ユーザーの初回ログイン時に PBKDF2 ハッシュとして D1 へ保存されます）
 
 ```bash
 pnpm worker:dev       # ローカルで Worker を開発
