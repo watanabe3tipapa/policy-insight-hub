@@ -83,7 +83,6 @@ async function startServer() {
   // API routes are handled by the shared fetch handler (same code path as the
   // Cloudflare Worker). Mount them before the body parsers so the raw stream is
   // available for adaptation.
-  app.use("/api/oauth/callback", (req, res) => void dispatchNodeRequest(req, res));
   app.use("/manus-storage", (req, res) => void dispatchNodeRequest(req, res));
   app.use("/api/trpc", (req, res) => void dispatchNodeRequest(req, res));
 

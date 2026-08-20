@@ -38,7 +38,7 @@ EBPM は「政策をエビデンスで設計し、検証する」ことです。
 3. **判断過程を残す** — 担当変更後も政策改善の学習を継承できる
 4. **鮮度を保つ** — データ源は静かに壊れ続ける。起動時ステイル検知と更新で「常に最新」を保つ
 5. **失敗しても止まらない** — DB 未接続・取得失敗は明示的なスキップとして吸収し、サーバー起動を妨げない
-6. **ロールを守る** — Manus OAuth 認証 + 管理者 / 一般ユーザーで書き込みを制御する
+6. **ロールを守る** — 管理者パスワード認証 + 管理者ロールで書き込みを制御する
 
 ## 特徴
 
@@ -50,7 +50,7 @@ EBPM は「政策をエビデンスで設計し、検証する」ことです。
 - **起動時ステイル更新**: 鮮度判定 → 15分リースによる重複実行防止 → 監査状態を保存し管理画面に反映
 - **国際EBPM政策エッセンス**: 根拠透明性・設計信頼性・文脈適合性・公平性影響・移転可能性の5評価軸で比較
 - **データ交換（SQLite .db）**: 正規化した標準形式で出力し、ブラウザ内で形式と収録件数を検証（サーバー送信なし）
-- **認証とロール制御**: Manus OAuth + tRPC プロシージャ単位の管理者 / 一般ユーザー制御
+- **認証とロール制御**: 管理者パスワードログイン + tRPC プロシージャ単位の管理者制御
 - **モダンSPA**: Vite + React 19 + TypeScript + tRPC v11 + drizzle-orm（Cloudflare D1）
 
 ## クイックスタート
@@ -107,22 +107,18 @@ pnpm build && pnpm start   # 本番: http://localhost:3000
 
 ### 3. 認証を有効化する
 
-Manus OAuth を使うための環境変数を `.env.example` を参考に設定します（実値は環境に応じて）：
+管理者パスワードログインのための環境変数を `.env.example` を参考に設定します（実値は環境に応じて）：
 
 ```bash
-export VITE_APP_ID=...           # Manus OAuth のアプリ ID
-export VITE_OAUTH_PORTAL_URL=... # OAuth ポータル URL
-export JWT_SECRET=...            # セッション JWT の署名キー（シークレット）
+export ADMIN_PASSWORD=...   # 管理者パスワード（シークレット）
+export JWT_SECRET=...       # セッション JWT の署名キー（シークレット）
 ```
 
 ## 環境変数
 
 | 変数 | 説明 |
 |---|---|
-| `VITE_APP_ID` | Manus OAuth のアプリ ID（未設定ならログイン不可） |
-| `VITE_OAUTH_PORTAL_URL` | Manus OAuth ポータル URL（`/app-auth` 起点） |
-| `OAUTH_SERVER_URL` | OAuth API のベース URL（既定 `https://api.manus.im`） |
-| `SPA_ORIGIN` | 分割デプロイ時の SPA オリジン（OAuth コールバックのリダイレクト先、例: `https://watanabe3tipapa.github.io`） |
+| `ADMIN_PASSWORD` | 管理者パスワード（シークレット、コミット禁止。未設定ならログイン不可） |
 | `OWNER_OPEN_ID` | 管理者（admin ロール）の openId |
 | `BUILT_IN_FORGE_API_URL` | Forge API の URL（既定 `https://forge.manus.ai`） |
 | `JWT_SECRET` | セッション JWT の署名キー（シークレット、コミット禁止） |
@@ -148,15 +144,15 @@ policy-insight-hub/
 │   │   │                   # KitesurfIntegration / PolicyEssences / DataExchange
 │   │   ├── components/     # DashboardLayout / PageFrame / FreshnessBadge / ui（shadcn 系）など
 │   │   ├── lib/            # trpc.ts / dataExchange.ts（SQLite .db 交換）
-│   │   └── _core/          # hooks/useAuth.ts（OAuth セッション）
+│   │   └── _core/          # hooks/useAuth.ts（パスワードセッション）
 │   └── public/             # 404.html（深層リンクの hash 復元） / runtime/
 ├── server/                 # API（Cloudflare Worker + Node アダプタで共通 fetch ハンドラ）
-│   ├── _core/              # handler.ts / trpc.ts / context.ts / oauth.ts / sdk.ts / env.ts / index.ts
+│   ├── _core/              # handler.ts / trpc.ts / context.ts / sdk.ts（JWT セッション）/ env.ts / index.ts
 │   ├── worker/index.ts     # Cloudflare Worker エントリ
 │   ├── routers/            # policy / kitesurf / internationalPolicy
 │   ├── db.ts               # D1 ヘルパー（bindD1Database で binding 注入）
 │   └── startupRefresh.ts   # 起動時ステイル検知・Kitesurf 更新
-├── shared/                 # const.ts（cookie / OAuth 定数） / types.ts
+├── shared/                 # const.ts（cookie 定数） / types.ts
 ├── drizzle/                # schema.ts / 0000_talented_blade.sql（マイグレーション）
 ├── scripts/                # capture-screens.mjs（画面表示検証）
 └── docs/                   # 設計ノート
@@ -169,7 +165,7 @@ tRPC（`/api/trpc`）:
 | namespace | procedure | 内容 |
 |---|---|---|
 | `system` | `health` / `notifyOwner` | 稼働確認 / オーナー通知 |
-| `auth` | `me` / `logout` | セッション取得 / ログアウト |
+| `auth` | `me` / `login` / `logout` | セッション取得 / パスワードログイン / ログアウト |
 | `policy.dataSources` | `list` / `create` / `update` | データ台帳 |
 | `policy.indicators` | `list` / `create` / `update` | 指標辞書 |
 | `policy.indicators.observations` | `list` / `create` | 時系列観測値 |
@@ -185,7 +181,6 @@ tRPC（`/api/trpc`）:
 
 | エンドポイント | 内容 |
 |---|---|
-| `/api/oauth/callback` | Manus OAuth のコールバック |
 | `/manus-storage/*` | ストレージプロキシ |
 
 ## Cloudflare Worker 連携
@@ -197,7 +192,7 @@ policy-insight-hub は **GitHub Pages（SPA）+ Cloudflare Workers（API）+ Clo
   監査状態（`lastStartupCheckAt` / `lastStartupOutcome` / `lastStartupMessage`）を D1 に保存して管理画面へ反映します
 - **wrangler.toml**: `server/worker/index.ts` を `main` に設定。D1 binding は
   `wrangler d1 create policy-insight-hub` で作成した `database_id` を入力して有効化します
-- **シークレット**: `JWT_SECRET` と `BUILT_IN_FORGE_API_KEY` はコミットせず
+- **シークレット**: `JWT_SECRET` と `BUILT_IN_FORGE_API_KEY` と `ADMIN_PASSWORD` はコミットせず
   `wrangler secret put` で設定します
 
 ```bash
@@ -214,7 +209,7 @@ pnpm db:migrate       # D1 へマイグレーション適用（--remote）
 
 ```sh
 pnpm check        # 型検査（tsc --noEmit）
-pnpm test         # Vitest（26 tests: 業務 API / 起動時更新 / マイグレーション再現 / データ交換）
+pnpm test         # Vitest（27 tests: 業務 API / 起動時更新 / マイグレーション再現 / データ交換）
 pnpm screenshot   # Playwright による全ページの表示検証（screenshots/ に出力）
 ```
 

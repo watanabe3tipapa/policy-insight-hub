@@ -15,8 +15,6 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  VITE_APP_ID: BFy8YVRhcfRANAz7NzE7RP
-  VITE_OAUTH_PORTAL_URL: https://manus.im
   VITE_API_URL: https://policy-insight-hub-api.watanabe3ti.workers.dev/api/trpc
 
 jobs:

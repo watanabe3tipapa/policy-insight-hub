@@ -40,7 +40,7 @@ so that anyone can reproduce and share the evidence.
 3. **Keep the decision history** — the learning of policy improvement survives staff changes
 4. **Stay fresh** — data sources quietly break; startup stale detection and refresh keep everything current
 5. **Never stop on failure** — DB-unavailable or fetch failures are absorbed as explicit skips and never block server startup
-6. **Guard the roles** — Manus OAuth + admin/general-user access control for writes
+6. **Guard the roles** — administrator password login + admin role access control for writes
 
 ## Features
 
@@ -52,7 +52,7 @@ so that anyone can reproduce and share the evidence.
 - **Startup stale refresh**: stale detection → 15-minute lease against duplicate runs → audit state saved to the dashboard
 - **International EBPM policy essences**: compare across 5 axes — evidence transparency, design credibility, context fit, equity impact, transferability
 - **Data exchange (SQLite .db)**: exports a normalized standard format and verifies format/counts in the browser (no server upload)
-- **Authentication & role control**: Manus OAuth + procedure-level admin/general-user access control on tRPC
+- **Authentication & role control**: administrator password login + procedure-level admin access control on tRPC
 - **Modern SPA**: Vite + React 19 + TypeScript + tRPC v11 + drizzle-orm (Cloudflare D1)
 
 ## Quick Start
@@ -109,22 +109,18 @@ pnpm build && pnpm start   # Production: http://localhost:3000
 
 ### 3. Enable authentication
 
-Set the environment variables for Manus OAuth (see `.env.example`; fill in real values as needed):
+Set the environment variables for the administrator password login (see `.env.example`; fill in real values as needed):
 
 ```bash
-export VITE_APP_ID=...           # Manus OAuth application ID
-export VITE_OAUTH_PORTAL_URL=... # OAuth portal URL
-export JWT_SECRET=...            # Session JWT signing key (secret)
+export ADMIN_PASSWORD=...   # Administrator password (secret)
+export JWT_SECRET=...       # Session JWT signing key (secret)
 ```
 
 ## Environment Variables
 
 | Variable | Description |
 |---|---|
-| `VITE_APP_ID` | Manus OAuth application ID (login unavailable when unset) |
-| `VITE_OAUTH_PORTAL_URL` | Manus OAuth portal URL (path starting at `/app-auth`) |
-| `OAUTH_SERVER_URL` | OAuth API base URL (default `https://api.manus.im`) |
-| `SPA_ORIGIN` | SPA origin for the OAuth callback redirect in the split deployment (e.g. `https://watanabe3tipapa.github.io`) |
+| `ADMIN_PASSWORD` | Administrator password (secret; never commit. Login unavailable when unset) |
 | `OWNER_OPEN_ID` | openId of the administrator (admin role) |
 | `BUILT_IN_FORGE_API_URL` | Forge API URL (default `https://forge.manus.ai`) |
 | `JWT_SECRET` | Session JWT signing key (secret; never commit) |
@@ -150,15 +146,15 @@ policy-insight-hub/
 │   │   │                   # KitesurfIntegration / PolicyEssences / DataExchange
 │   │   ├── components/     # DashboardLayout / PageFrame / FreshnessBadge / ui (shadcn-style) etc.
 │   │   ├── lib/            # trpc.ts / dataExchange.ts (SQLite .db exchange)
-│   │   └── _core/          # hooks/useAuth.ts (OAuth session)
+│   │   └── _core/          # hooks/useAuth.ts (password session)
 │   └── public/             # 404.html (deep-link hash restore) / runtime/
 ├── server/                 # API (Cloudflare Worker + Node adapter sharing one fetch handler)
-│   ├── _core/              # handler.ts / trpc.ts / context.ts / oauth.ts / sdk.ts / env.ts / index.ts
+│   ├── _core/              # handler.ts / trpc.ts / context.ts / sdk.ts (JWT session) / env.ts / index.ts
 │   ├── worker/index.ts     # Cloudflare Worker entry
 │   ├── routers/            # policy / kitesurf / internationalPolicy
 │   ├── db.ts               # D1 helpers (bindD1Database binding injection)
 │   └── startupRefresh.ts   # startup stale detection + Kitesurf refresh
-├── shared/                 # const.ts (cookie / OAuth constants) / types.ts
+├── shared/                 # const.ts (cookie constants) / types.ts
 ├── drizzle/                # schema.ts / 0000_talented_blade.sql (migration)
 ├── scripts/                # capture-screens.mjs (visual verification)
 └── docs/                   # design notes
@@ -171,7 +167,7 @@ tRPC (`/api/trpc`):
 | namespace | procedures | purpose |
 |---|---|---|
 | `system` | `health` / `notifyOwner` | health check / notify owner |
-| `auth` | `me` / `logout` | session lookup / logout |
+| `auth` | `me` / `login` / `logout` | session lookup / password login / logout |
 | `policy.dataSources` | `list` / `create` / `update` | data registry |
 | `policy.indicators` | `list` / `create` / `update` | indicator dictionary |
 | `policy.indicators.observations` | `list` / `create` | time-series observations |
@@ -187,7 +183,6 @@ Other HTTP routes:
 
 | Endpoint | Purpose |
 |---|---|
-| `/api/oauth/callback` | Manus OAuth callback |
 | `/manus-storage/*` | storage proxy |
 
 ## Cloudflare Worker Integration
@@ -200,8 +195,8 @@ policy-insight-hub runs on **GitHub Pages (SPA) + Cloudflare Workers (API) + Clo
   reflected on the management screen
 - **wrangler.toml**: `server/worker/index.ts` is set as `main`. Enable the D1 binding by pasting the
   `database_id` returned by `wrangler d1 create policy-insight-hub`
-- **Secrets**: `JWT_SECRET` and `BUILT_IN_FORGE_API_KEY` are never committed; set them with
-  `wrangler secret put`
+- **Secrets**: `JWT_SECRET`, `BUILT_IN_FORGE_API_KEY` and `ADMIN_PASSWORD` are never committed; set them
+  with `wrangler secret put`
 
 ```bash
 pnpm worker:dev       # develop the Worker locally
@@ -217,7 +212,7 @@ pnpm db:migrate       # apply migrations to D1 (--remote)
 
 ```sh
 pnpm check        # type check (tsc --noEmit)
-pnpm test         # Vitest (26 tests: business API / startup refresh / migration replay / data exchange)
+pnpm test         # Vitest (27 tests: business API / startup refresh / migration replay / data exchange)
 pnpm screenshot   # Playwright visual verification of every page (output to screenshots/)
 ```
 

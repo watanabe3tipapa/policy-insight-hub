@@ -2,7 +2,7 @@
 //
 // Serves the built SPA (dist/public) and captures each authenticated page with
 // the tRPC API mocked at the HTTP layer, so the screenshots render without a
-// real OAuth session or D1 database. Mock data shows the app's empty states and
+// real admin-password session or D1 database. Mock data shows the app's empty states and
 // the admin UI. Run with: pnpm screenshot
 //
 // Requires: `pnpm build` (or run the script, which rebuilds) and Playwright's
@@ -36,7 +36,7 @@ const FAKE_USER = {
   openId: "mock-openid",
   name: "Toolsmith",
   email: "admin@example.com",
-  loginMethod: "mock",
+  loginMethod: "password",
   role: "admin",
   createdAt: "2026-01-01T00:00:00.000Z",
   lastSignedIn: "2026-08-18T00:00:00.000Z",

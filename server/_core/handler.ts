@@ -3,7 +3,6 @@ import { appRouter } from "../routers";
 import { bindD1Database } from "../db";
 import { createContext } from "./context";
 import { configureEnv } from "./env";
-import { handleOAuthCallback, handleOAuthStart } from "./oauth";
 import { handleStorageProxy } from "./storageProxy";
 
 type WorkerEnv = Record<string, string | undefined> & {
@@ -13,8 +12,8 @@ type WorkerEnv = Record<string, string | undefined> & {
 /**
  * CORS for the split deployment: the SPA is served from GitHub Pages while the
  * API lives on the Worker, so the browser sends cross-origin requests with
- * credentials. We echo the request Origin (never `*`) so the session / OAuth
- * state cookies can be sent back with credentials, and answer OPTIONS
+ * credentials. We echo the request Origin (never `*`) so the session cookie
+ * can be sent back with credentials, and answer OPTIONS
  * preflights for the JSON POST / batch requests.
  */
 function corsHeaders(request: Request): Headers {
@@ -44,7 +43,7 @@ function applyCors(response: Response, request: Request): Response {
 
 /**
  * Single request handler shared by the Cloudflare Worker entry and the local
- * Node adapter. Routes the tRPC API, OAuth callback and storage proxy.
+ * Node adapter. Routes the tRPC API and storage proxy.
  */
 export async function handleRequest(request: Request, env: WorkerEnv): Promise<Response> {
   configureEnv(env);
@@ -54,10 +53,6 @@ export async function handleRequest(request: Request, env: WorkerEnv): Promise<R
 
   if (request.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders(request) });
-  }
-
-  if (url.pathname === "/api/oauth/start") {
-    return applyCors(await handleOAuthStart(request), request);
   }
 
   if (url.pathname.startsWith("/api/trpc")) {
@@ -70,10 +65,6 @@ export async function handleRequest(request: Request, env: WorkerEnv): Promise<R
       }),
       request
     );
-  }
-
-  if (url.pathname === "/api/oauth/callback") {
-    return applyCors(await handleOAuthCallback(request), request);
   }
 
   if (url.pathname.startsWith("/manus-storage/")) {

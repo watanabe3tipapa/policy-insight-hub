@@ -19,12 +19,13 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { startLogin } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
 import { BookOpenCheck, ChartNoAxesCombined, Database, LogOut, PanelLeft, ShieldCheck, ClipboardCheck, ScanSearch, Globe2, HardDriveDownload } from "lucide-react";
+import { useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
 import { Button } from "./ui/button";
+import { Input } from "./ui/input";
 
 const menuItems = [
   { icon: ChartNoAxesCombined, label: "ダッシュボード", path: "/" },
@@ -37,7 +38,8 @@ const menuItems = [
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { loading, user } = useAuth();
+  const { loading, user, login, loginPending, error } = useAuth();
+  const [password, setPassword] = useState("");
   if (loading) return <DashboardLayoutSkeleton />;
   if (!user) {
     return (
@@ -46,8 +48,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="mx-auto mb-6 grid h-14 w-14 place-items-center border border-cyan-200/50 bg-cyan-300/10 text-cyan-100"><ShieldCheck className="h-7 w-7" /></div>
           <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-cyan-100/80">Policy Insight Hub / Secure Access</p>
           <h1 className="mt-4 text-3xl font-bold tracking-tight text-white">政策データの根拠を、共有可能な構造へ。</h1>
-          <p className="mx-auto mt-4 max-w-md text-sm leading-6 text-blue-100/75">データ台帳、指標辞書、レビュー記録にアクセスするには、組織アカウントでログインしてください。</p>
-          <Button onClick={() => startLogin()} className="blueprint-primary mt-8 h-11 w-full">Manus OAuthでログイン</Button>
+          <p className="mx-auto mt-4 max-w-md text-sm leading-6 text-blue-100/75">データ台帳、指標辞書、レビュー記録にアクセスするには、管理者パスワードでログインしてください。</p>
+          <form className="mt-8 flex flex-col gap-3" onSubmit={event => { event.preventDefault(); login(password); }}>
+            <Input
+              className="blueprint-input h-11 text-center"
+              type="password"
+              value={password}
+              onChange={event => setPassword(event.target.value)}
+              placeholder="パスワード"
+              autoFocus
+            />
+            {error ? <p className="text-xs text-red-300">ログインできませんでした。パスワードを確認してください。</p> : null}
+            <Button type="submit" className="blueprint-primary mt-1 h-11 w-full" disabled={!password || loginPending}>{loginPending ? "ログイン中…" : "ログイン"}</Button>
+          </form>
         </div>
       </div>
     );

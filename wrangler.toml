@@ -15,12 +15,10 @@ migrations_dir = "drizzle"
 
 # Non-secret environment variables that mirror the app configuration.
 [vars]
-VITE_APP_ID = "BFy8YVRhcfRANAz7NzE7RP"
-OAUTH_SERVER_URL = "https://api.manus.im"
 OWNER_OPEN_ID = "a5zQdSXmSJqJiSn8W8pjUm"
 BUILT_IN_FORGE_API_URL = "https://forge.manus.ai"
-SPA_ORIGIN = "https://watanabe3tipapa.github.io"
 
 # Secrets are set separately, do not commit them here:
 #   wrangler secret put JWT_SECRET
 #   wrangler secret put BUILT_IN_FORGE_API_KEY
+#   wrangler secret put ADMIN_PASSWORD
