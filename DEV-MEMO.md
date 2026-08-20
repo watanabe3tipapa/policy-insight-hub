@@ -37,7 +37,7 @@ client/            # React SPA（vite root = client/）
                    # KitesurfIntegration, PolicyEssences, DataExchange
   src/components/  # DashboardLayout, AIChatBox（削除せず維持）, ui/ など
   src/lib/         # trpc.ts, dataExchange.ts（SQLite .db 交換）
-  src/_core/       # useAuth.ts
+  src/_core/       # hooks/useAuth.ts
   public/404.html  # GH Pages 深層リンク → hash へのリライト
   public/runtime/  # debug-collector.js 等（旧 __manus__ からリネーム）
 server/            # API
@@ -69,6 +69,7 @@ Node エントリは `process.env`、Worker エントリは bindings を渡す�
 | `SPA_ORIGIN` | 分割デプロイ時の SPA オリジン（OAuth コールバックのリダイレクト先） |
 | `VITE_OAUTH_PORTAL_URL` | OAuth ポータル（`/app-auth` 起点） |
 | `VITE_API_URL` | クライアントが API を指す URL（ビルド時） |
+| `VITE_ANALYTICS_ENDPOINT` / `VITE_ANALYTICS_WEBSITE_ID` | Umami アナリティクス（ビルド時設定時のみ index.html から注入） |
 | `PORT` | ローカル Node サーバー優先ポート（既定 3000、使用中なら +19 まで探索） |
 
 ### デプロイ（現行）
@@ -138,7 +139,7 @@ users / data_sources / indicators / indicator_observations / reviews / review_ac
 | `pnpm build` | vite build + esbuild で `dist/` に Node サーバーと `dist/public/` に SPA |
 | `pnpm start` | 本番ビルドを Node で実行（`NODE_ENV=production`） |
 | `pnpm check` | `tsc --noEmit` |
-| `pnpm test` | Vitest 実行（22 テスト） |
+| `pnpm test` | Vitest 実行（26 テスト） |
 | `pnpm db:generate` | drizzle-kit generate（マイグレーション生成） |
 | `pnpm db:migrate` | `wrangler d1 migrations apply policy-insight-hub --remote` |
 | `pnpm worker:dev` / `worker:deploy` | wrangler dev / deploy |
@@ -163,6 +164,8 @@ users / data_sources / indicators / indicator_observations / reviews / review_ac
 - 出力: `screenshots/*.png`（7 ルート）
 
 ## 実装履歴（この回までの主要変更）
+
+- **動作検証とドキュメント整合（今回）**: `pnpm install`/`check`/`test`/`build` を完走（test 26 件）。package.json の `pnpm.onlyBuiltDependencies` に `@tailwindcss/oxide`/`esbuild`/`workerd` を追加（pnpm 10 のビルドスクリプトブロック解除）。index.html の Umami タグを「設定時のみ注入」のガード付きに変更（未設定時は壊れた `<script src="%VITE_ANALYTICS_ENDPOINT%/umami">` がビルド出力に残る問題を解消）。`.env.example` に `SPA_ORIGIN` と `VITE_ANALYTICS_*` を追記。README(ja/en)・DEV-MEMO のテスト数（22→26）と useAuth パス（`_core/useAuth.ts` → `_core/hooks/useAuth.ts`）を実装と一致させた。README(ja/en) の前提条件に「Volta を使う場合 / 使わない場合」の pnpm 導入解説を追記（`volta install pnpm@10.4.1` 未導入時の shim エラー対策）
 
 - 未使用サーバーヘルパー/クライアント削除（dataApi, heartbeat, llm, map, imageGeneration, voiceTranscription, ManusDialog, Map, Home, ComponentShowcase）
 - `adminProcedure` を `server/_core/trpc.ts` に統合、`reviews.update/delete/actions.delete` を router+db に追加

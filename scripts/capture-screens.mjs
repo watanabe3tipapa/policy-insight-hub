@@ -100,13 +100,27 @@ function mockTrpc(pathnames) {
   }));
 }
 
+async function launchBrowser() {
+  try {
+    return await chromium.launch();
+  } catch (error) {
+    // Playwright's bundled chromium may be unavailable on the current platform
+    // (e.g. a macOS release newer than the Playwright registry supports). Fall
+    // back to an installed Google Chrome so the check still runs.
+    console.log(
+      `[capture] bundled chromium unavailable (${String(error.message).split("\n")[0]}); falling back to system Chrome`,
+    );
+    return chromium.launch({ channel: "chrome" });
+  }
+}
+
 async function run() {
   execFileSync("pnpm", ["build"], { cwd: ROOT, stdio: "inherit" });
   mkdirSync(OUT_DIR, { recursive: true });
 
   const server = startServer();
 
-  const browser = await chromium.launch();
+  const browser = await launchBrowser();
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
 
   await page.route("**/*", async (route) => {

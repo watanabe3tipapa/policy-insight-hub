@@ -62,6 +62,34 @@ EBPM は「政策をエビデンスで設計し、検証する」ことです。
 | Node.js | >= 20 | `node --version` |
 | pnpm | >= 9 | `pnpm --version` |
 
+#### pnpm の導入（Volta を使う場合 / 使わない場合）
+
+このリポジトリは `package.json` の `packageManager` で **`pnpm@10.4.1+sha512...`** を固定しています。
+`pnpm --version` が `Volta error: Could not locate executable` で失敗する場合は、以下のいずれかで導入してください。
+
+**Volta を使う場合**
+
+```bash
+volta install pnpm@10.4.1
+```
+
+Volta は `packageManager` に固定されたバージョンを shim から解決します。固定版が未導入だと上記エラーになるため、
+必ず `volta install` で同じバージョンを導入してください。
+
+**Volta を使わない場合**
+
+```bash
+# corepack（Node.js 同梱）で packageManager の固定版を自動取得
+corepack enable pnpm
+
+# または npm 経由で任意のバージョンを導入
+npm install -g pnpm@10.4.1
+```
+
+> **備考**: リポジトリの `package.json` の `pnpm.onlyBuiltDependencies` には `@tailwindcss/oxide` / `esbuild` / `workerd` が
+> 登録されています（pnpm 10 でデフォルト化された「ビルドスクリプトのブロック」を解除するため）。導入後に
+> `pnpm rebuild` が必要な場合は上記 3 パッケージが対象です。
+
 ### 1. リポジトリを取得する
 
 ```bash
@@ -94,6 +122,7 @@ export JWT_SECRET=...            # セッション JWT の署名キー（シー�
 | `VITE_APP_ID` | Manus OAuth のアプリ ID（未設定ならログイン不可） |
 | `VITE_OAUTH_PORTAL_URL` | Manus OAuth ポータル URL（`/app-auth` 起点） |
 | `OAUTH_SERVER_URL` | OAuth API のベース URL（既定 `https://api.manus.im`） |
+| `SPA_ORIGIN` | 分割デプロイ時の SPA オリジン（OAuth コールバックのリダイレクト先、例: `https://watanabe3tipapa.github.io`） |
 | `OWNER_OPEN_ID` | 管理者（admin ロール）の openId |
 | `BUILT_IN_FORGE_API_URL` | Forge API の URL（既定 `https://forge.manus.ai`） |
 | `JWT_SECRET` | セッション JWT の署名キー（シークレット、コミット禁止） |
@@ -106,6 +135,8 @@ export JWT_SECRET=...            # セッション JWT の署名キー（シー�
 |---|---|
 | `VITE_API_URL` | API ベース URL（例: Cloudflare Worker の `/api/trpc`。未設定なら同オリジン `/api/trpc`） |
 | `VITE_BASE_PATH` | カスタムドメイン使用時の静的 base（既定 `/policy-insight-hub/`） |
+| `VITE_ANALYTICS_ENDPOINT` | Umami アナリティクスのエンドポイント（ビルド時設定時のみ注入） |
+| `VITE_ANALYTICS_WEBSITE_ID` | Umami の website ID（同上） |
 
 ## アーキテクチャ
 
@@ -117,7 +148,7 @@ policy-insight-hub/
 │   │   │                   # KitesurfIntegration / PolicyEssences / DataExchange
 │   │   ├── components/     # DashboardLayout / PageFrame / FreshnessBadge / ui（shadcn 系）など
 │   │   ├── lib/            # trpc.ts / dataExchange.ts（SQLite .db 交換）
-│   │   └── _core/          # useAuth.ts（OAuth セッション）
+│   │   └── _core/          # hooks/useAuth.ts（OAuth セッション）
 │   └── public/             # 404.html（深層リンクの hash 復元） / runtime/
 ├── server/                 # API（Cloudflare Worker + Node アダプタで共通 fetch ハンドラ）
 │   ├── _core/              # handler.ts / trpc.ts / context.ts / oauth.ts / sdk.ts / env.ts / index.ts
@@ -183,7 +214,7 @@ pnpm db:migrate       # D1 へマイグレーション適用（--remote）
 
 ```sh
 pnpm check        # 型検査（tsc --noEmit）
-pnpm test         # Vitest（22 tests: 業務 API / 起動時更新 / マイグレーション再現 / データ交換）
+pnpm test         # Vitest（26 tests: 業務 API / 起動時更新 / マイグレーション再現 / データ交換）
 pnpm screenshot   # Playwright による全ページの表示検証（screenshots/ に出力）
 ```
 

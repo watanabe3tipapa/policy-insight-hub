@@ -64,6 +64,34 @@ so that anyone can reproduce and share the evidence.
 | Node.js | >= 20 | `node --version` |
 | pnpm | >= 9 | `pnpm --version` |
 
+#### Installing pnpm (with or without Volta)
+
+This repository pins **`pnpm@10.4.1+sha512...`** via the `packageManager` field in `package.json`.
+If `pnpm --version` fails with `Volta error: Could not locate executable`, install it with one of the following.
+
+**With Volta**
+
+```bash
+volta install pnpm@10.4.1
+```
+
+Volta resolves the pinned version from the shim. The error above appears when the pinned version is not
+installed, so always `volta install` the same version.
+
+**Without Volta**
+
+```bash
+# corepack (bundled with Node.js) fetches the pinned version automatically
+corepack enable pnpm
+
+# or install any version via npm
+npm install -g pnpm@10.4.1
+```
+
+> **Note**: `package.json` lists `@tailwindcss/oxide` / `esbuild` / `workerd` in `pnpm.onlyBuiltDependencies`
+> to unblock pnpm 10's default "build scripts are ignored" behavior. If `pnpm rebuild` is ever needed after
+> install, those three packages are the target.
+
 ### 1. Clone the repository
 
 ```bash
@@ -96,6 +124,7 @@ export JWT_SECRET=...            # Session JWT signing key (secret)
 | `VITE_APP_ID` | Manus OAuth application ID (login unavailable when unset) |
 | `VITE_OAUTH_PORTAL_URL` | Manus OAuth portal URL (path starting at `/app-auth`) |
 | `OAUTH_SERVER_URL` | OAuth API base URL (default `https://api.manus.im`) |
+| `SPA_ORIGIN` | SPA origin for the OAuth callback redirect in the split deployment (e.g. `https://watanabe3tipapa.github.io`) |
 | `OWNER_OPEN_ID` | openId of the administrator (admin role) |
 | `BUILT_IN_FORGE_API_URL` | Forge API URL (default `https://forge.manus.ai`) |
 | `JWT_SECRET` | Session JWT signing key (secret; never commit) |
@@ -108,6 +137,8 @@ export JWT_SECRET=...            # Session JWT signing key (secret)
 |---|---|
 | `VITE_API_URL` | API base URL (e.g. the Cloudflare Worker's `/api/trpc`; falls back to same-origin `/api/trpc`) |
 | `VITE_BASE_PATH` | Static base for a custom domain (default `/policy-insight-hub/`) |
+| `VITE_ANALYTICS_ENDPOINT` | Umami analytics endpoint (injected only when set at build time) |
+| `VITE_ANALYTICS_WEBSITE_ID` | Umami website ID (same) |
 
 ## Architecture
 
@@ -119,7 +150,7 @@ policy-insight-hub/
 │   │   │                   # KitesurfIntegration / PolicyEssences / DataExchange
 │   │   ├── components/     # DashboardLayout / PageFrame / FreshnessBadge / ui (shadcn-style) etc.
 │   │   ├── lib/            # trpc.ts / dataExchange.ts (SQLite .db exchange)
-│   │   └── _core/          # useAuth.ts (OAuth session)
+│   │   └── _core/          # hooks/useAuth.ts (OAuth session)
 │   └── public/             # 404.html (deep-link hash restore) / runtime/
 ├── server/                 # API (Cloudflare Worker + Node adapter sharing one fetch handler)
 │   ├── _core/              # handler.ts / trpc.ts / context.ts / oauth.ts / sdk.ts / env.ts / index.ts
@@ -186,7 +217,7 @@ pnpm db:migrate       # apply migrations to D1 (--remote)
 
 ```sh
 pnpm check        # type check (tsc --noEmit)
-pnpm test         # Vitest (22 tests: business API / startup refresh / migration replay / data exchange)
+pnpm test         # Vitest (26 tests: business API / startup refresh / migration replay / data exchange)
 pnpm screenshot   # Playwright visual verification of every page (output to screenshots/)
 ```
 
