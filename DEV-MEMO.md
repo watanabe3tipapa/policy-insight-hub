@@ -165,7 +165,9 @@ users / data_sources / indicators / indicator_observations / reviews / review_ac
 
 ## 実装履歴（この回までの主要変更）
 
-- **動作検証とドキュメント整合（今回）**: `pnpm install`/`check`/`test`/`build` を完走（test 26 件）。package.json の `pnpm.onlyBuiltDependencies` に `@tailwindcss/oxide`/`esbuild`/`workerd` を追加（pnpm 10 のビルドスクリプトブロック解除）。index.html の Umami タグを「設定時のみ注入」のガード付きに変更（未設定時は壊れた `<script src="%VITE_ANALYTICS_ENDPOINT%/umami">` がビルド出力に残る問題を解消）。`.env.example` に `SPA_ORIGIN` と `VITE_ANALYTICS_*` を追記。README(ja/en)・DEV-MEMO のテスト数（22→26）と useAuth パス（`_core/useAuth.ts` → `_core/hooks/useAuth.ts`）を実装と一致させた。README(ja/en) の前提条件に「Volta を使う場合 / 使わない場合」の pnpm 導入解説を追記（`volta install pnpm@10.4.1` 未導入時の shim エラー対策）
+- **v1.1.1**: リポジトリを public 化、GitHub Pages を有効化（`build_type: workflow`）。Pages デプロイワークフローの actions を Node 24 対応の最新メジャーへ更新（`checkout`→v5 / `setup-node`→v5 / `pnpm/action-setup`→v6 / `upload-pages-artifact`→v5 / `deploy-pages`→v5）。`capture-screens.mjs` に Playwright bundled chromium 未対応時のシステム Chrome フォールバックを追加。package.json の version を v1.1.1 に更新
+
+- **動作検証とドキュメント整合**: `pnpm install`/`check`/`test`/`build` を完走（test 26 件）。package.json の `pnpm.onlyBuiltDependencies` に `@tailwindcss/oxide`/`esbuild`/`workerd` を追加（pnpm 10 のビルドスクリプトブロック解除）。index.html の Umami タグを「設定時のみ注入」のガード付きに変更（未設定時は壊れた `<script src="%VITE_ANALYTICS_ENDPOINT%/umami">` がビルド出力に残る問題を解消）。`.env.example` に `SPA_ORIGIN` と `VITE_ANALYTICS_*` を追記。README(ja/en)・DEV-MEMO のテスト数（22→26）と useAuth パス（`_core/useAuth.ts` → `_core/hooks/useAuth.ts`）を実装と一致させた。README(ja/en) の前提条件に「Volta を使う場合 / 使わない場合」の pnpm 導入解説を追記（`volta install pnpm@10.4.1` 未導入時の shim エラー対策）
 
 - 未使用サーバーヘルパー/クライアント削除（dataApi, heartbeat, llm, map, imageGeneration, voiceTranscription, ManusDialog, Map, Home, ComponentShowcase）
 - `adminProcedure` を `server/_core/trpc.ts` に統合、`reviews.update/delete/actions.delete` を router+db に追加

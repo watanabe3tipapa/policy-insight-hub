@@ -1,6 +1,6 @@
 # policy-insight-hub
 
-[![Version](https://img.shields.io/badge/version-v1.0.0-blue.svg)](https://github.com/watanabe3tipapa/policy-insight-hub)
+[![Version](https://img.shields.io/badge/version-v1.1.1-blue.svg)](https://github.com/watanabe3tipapa/policy-insight-hub)
 [![Issues](https://img.shields.io/github/issues/watanabe3tipapa/policy-insight-hub.svg)](https://github.com/watanabe3tipapa/policy-insight-hub/issues)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
