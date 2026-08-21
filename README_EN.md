@@ -107,21 +107,31 @@ pnpm dev        # Dev: http://localhost:3000
 pnpm build && pnpm start   # Production: http://localhost:3000
 ```
 
-### 3. Enable authentication
-
-Set the environment variables for the administrator password login (see `.env.example`; fill in real values as needed):
+### Demo mode (bypass auth for full app access / LP)
 
 ```bash
-export ADMIN_PASSWORD=...   # Administrator password (secret)
-export JWT_SECRET=...       # Session JWT signing key (secret)
+VITE_DEMO_MODE=true pnpm dev
+```
+- Auto-logs in as admin user "Demo User"
+- Skips login screen; all pages accessible (Dashboard, Data Sources, Indicators, Reviews, Collection, Policy Essences, Data Exchange)
+- **Local development only** — keep `false` for production builds/deploys
+
+> **Note**: The landing page (`/`) alone does not allow actual hands-on experience (data entry, editing, chart interaction). Start with demo mode and navigate to `/dashboard` and beyond to try the features.
+
+### 3. Enable authentication
+
+Set the environment variables for the username + password login (see `.env.example`; fill in real values as needed):
+
+```bash
+export ADMIN_USERNAME=admin   # username that gets the admin role on first login
+export JWT_SECRET=...         # Session JWT signing key (secret)
 ```
 
 ## Environment Variables
 
 | Variable | Description |
 |---|---|
-| `ADMIN_PASSWORD` | Administrator password (secret; never commit. Login unavailable when unset) |
-| `OWNER_OPEN_ID` | openId of the administrator (admin role) |
+| `ADMIN_USERNAME` | Username auto-created with the admin role on first login |
 | `BUILT_IN_FORGE_API_URL` | Forge API URL (default `https://forge.manus.ai`) |
 | `JWT_SECRET` | Session JWT signing key (secret; never commit) |
 | `BUILT_IN_FORGE_API_KEY` | Forge API key (secret; never commit) |
@@ -135,6 +145,7 @@ export JWT_SECRET=...       # Session JWT signing key (secret)
 | `VITE_BASE_PATH` | Static base for a custom domain (default `/policy-insight-hub/`) |
 | `VITE_ANALYTICS_ENDPOINT` | Umami analytics endpoint (injected only when set at build time) |
 | `VITE_ANALYTICS_WEBSITE_ID` | Umami website ID (same) |
+| `VITE_DEMO_MODE` | `true` to bypass auth and access all features as demo user (local development only) |
 
 ## Architecture
 
@@ -195,7 +206,7 @@ policy-insight-hub runs on **GitHub Pages (SPA) + Cloudflare Workers (API) + Clo
   reflected on the management screen
 - **wrangler.toml**: `server/worker/index.ts` is set as `main`. Enable the D1 binding by pasting the
   `database_id` returned by `wrangler d1 create policy-insight-hub`
-- **Secrets**: `JWT_SECRET`, `BUILT_IN_FORGE_API_KEY` and `ADMIN_PASSWORD` are never committed; set them
+- **Secrets**: `JWT_SECRET` and `BUILT_IN_FORGE_API_KEY` are never committed; set them
   with `wrangler secret put`
 
 ```bash
