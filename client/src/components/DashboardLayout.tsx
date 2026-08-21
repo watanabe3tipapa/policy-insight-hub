@@ -20,13 +20,13 @@ import {
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useIsMobile } from "@/hooks/useMobile";
-import { BookOpenCheck, ChartNoAxesCombined, Database, LogOut, PanelLeft, ShieldCheck, ClipboardCheck, ScanSearch, Globe2, HardDriveDownload, Info } from "lucide-react";
+import { BookOpenCheck, ChartNoAxesCombined, Database, LogOut, PanelLeft, ShieldCheck, ClipboardCheck, ScanSearch, Globe2, HardDriveDownload } from "lucide-react";
 import { useLocation } from "wouter";
+import { useEffect } from "react";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
-import LoginForm from "./LoginForm";
 
 const menuItems = [
-  { icon: ChartNoAxesCombined, label: "ダッシュボード", path: "/" },
+  { icon: ChartNoAxesCombined, label: "ダッシュボード", path: "/dashboard" },
   { icon: Database, label: "データ台帳", path: "/sources" },
   { icon: BookOpenCheck, label: "指標辞書", path: "/indicators" },
   { icon: ClipboardCheck, label: "レビュー記録", path: "/reviews" },
@@ -37,9 +37,11 @@ const menuItems = [
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { loading, user } = useAuth();
+  const [, navigate] = useLocation();
   if (loading) return <DashboardLayoutSkeleton />;
   if (!user) {
-    return <LoginForm />;
+    useEffect(() => { navigate("/"); }, [navigate]);
+    return null;
   }
 
   return (

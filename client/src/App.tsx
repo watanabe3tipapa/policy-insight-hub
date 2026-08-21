@@ -10,6 +10,7 @@ import Reviews from "./pages/Reviews";
 import KitesurfIntegration from "./pages/KitesurfIntegration";
 import PolicyEssences from "./pages/PolicyEssences";
 import DataExchange from "./pages/DataExchange";
+import LandingPage from "./pages/LandingPage";
 import NotFound from "./pages/NotFound";
 import { Route, Switch } from "wouter";
 
@@ -20,7 +21,8 @@ function WorkspaceRoute({ component: Component }: { component: React.ComponentTy
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={() => <WorkspaceRoute component={PolicyDashboard} />} />
+      <Route path="/" component={LandingPage} />
+      <Route path="/dashboard" component={() => <WorkspaceRoute component={PolicyDashboard} />} />
       <Route path="/sources" component={() => <WorkspaceRoute component={DataSources} />} />
       <Route path="/indicators" component={() => <WorkspaceRoute component={Indicators} />} />
       <Route path="/reviews" component={() => <WorkspaceRoute component={Reviews} />} />
