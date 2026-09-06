@@ -24,7 +24,7 @@ EBPM 政策データ（データ台帳・指標辞書・観測値・レビュー
 | API クライアント | @trpc/client v11 + @tanstack/react-query v5、superjson transformer |
 | サーバー | Express（Node アダプタ、ローカル用）+ Cloudflare Worker（fetch ハンドラ共有） |
 | ORM | drizzle-orm + drizzle-kit（SQLite / D1） |
-| 認証 | 単一管理者パスワード + jose セッション JWT |
+| 認証 | ユーザー名+パスワード（PBKDF2）+ jose セッション JWT |
 | テスト | Vitest（node 環境） |
 | DB 検証 | sql.js（in-memory SQLite、マイグレーション再現テスト） |
 | スクリーンショット | Playwright（chromium） |
@@ -71,7 +71,7 @@ Node エントリは `process.env`、Worker エントリは bindings を渡す�
 ### デプロイ（現行）
 - SPA: **GitHub Pages** `https://watanabe3tipapa.github.io/policy-insight-hub/`（`.github/workflows/deploy-pages.yml` が push 時に `vite build` → Pages へ自動配信）
 - API: **Cloudflare Worker** `https://policy-insight-hub-api.watanabe3ti.workers.dev`（`pnpm exec wrangler deploy`）
-- DB: **D1** `policy-insight-hub`（`ac5229fc-bed8-4011-8c6b-fcda3e7274a8`、region APAC、`0000_talented_blade.sql` 適用済み）
+- DB: **D1** `policy-insight-hub`（`ac5229fc-bed8-4011-8c6b-fcda3e7274a8`、region APAC、`0000_talented_blade.sql` / `0001_breezy_proudstar.sql` 適用済み）
 - ビルド時 env（Pages workflow）: `VITE_API_URL`
 
 ### vite.config.ts
@@ -102,7 +102,7 @@ Node エントリは `process.env`、Worker エントリは bindings を渡す�
 
 ## データモデル（drizzle/schema.ts、SQLite / D1）
 
-13 テーブル（`drizzle/0000_talented_blade.sql` が適用済みマイグレーション）:
+13 テーブル（`drizzle/0000_talented_blade.sql` / `drizzle/0001_breezy_proudstar.sql` が適用済みマイグレーション）:
 
 users / data_sources / indicators / indicator_observations / reviews / review_actions / kitesurf_configs / collection_runs / source_candidates / policy_sources / policy_essences / policy_contexts / policy_reviews
 
@@ -136,7 +136,7 @@ users / data_sources / indicators / indicator_observations / reviews / review_ac
 | `pnpm build` | vite build + esbuild で `dist/` に Node サーバーと `dist/public/` に SPA |
 | `pnpm start` | 本番ビルドを Node で実行（`NODE_ENV=production`） |
 | `pnpm check` | `tsc --noEmit` |
-| `pnpm test` | Vitest 実行（27 テスト） |
+| `pnpm test` | Vitest 実行（31 テスト） |
 | `pnpm db:generate` | drizzle-kit generate（マイグレーション生成） |
 | `pnpm db:migrate` | `wrangler d1 migrations apply policy-insight-hub --remote` |
 | `pnpm worker:dev` / `worker:deploy` | wrangler dev / deploy |
@@ -145,7 +145,7 @@ users / data_sources / indicators / indicator_observations / reviews / review_ac
 ## テスト
 
 - サーバー: tRPC を fetch ベースの `createContext` で叩く統合テスト
-  - `auth.login`（正/誤パスワード・未設定時）, `auth.logout`, `policy.access`, `internationalPolicy.access`, `kitesurf.access`, `kitesurf.startupAudit`, `startupRefresh`（安全分岐の回帰）
+  - `auth.login`（正/誤パスワード・入力不備の検証弾き）, `auth.logout`, `policy.access`, `internationalPolicy.access`, `kitesurf.access`, `kitesurf.startupAudit`, `startupRefresh`（安全分岐の回帰）
 - マイグレーション再現: `server/migration.test.ts` — `drizzle/0000_talented_blade.sql` を sql.js の in-memory DB に適用し、13 テーブルと `kitesurf_configs` 起動時更新カラムの存在を assert
 - クライアント: `dataExchange.test.ts`, `startupAudit.test.ts`
 - tsconfig の `exclude` は `**/*.test.ts` を含む（tsc はテストを型検査しない）

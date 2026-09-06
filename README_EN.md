@@ -40,7 +40,7 @@ so that anyone can reproduce and share the evidence.
 3. **Keep the decision history** — the learning of policy improvement survives staff changes
 4. **Stay fresh** — data sources quietly break; startup stale detection and refresh keep everything current
 5. **Never stop on failure** — DB-unavailable or fetch failures are absorbed as explicit skips and never block server startup
-6. **Guard the roles** — administrator password login + admin role access control for writes
+6. **Guard the roles** — username + password login + admin role access control for writes
 
 ## Features
 
@@ -52,7 +52,7 @@ so that anyone can reproduce and share the evidence.
 - **Startup stale refresh**: stale detection → 15-minute lease against duplicate runs → audit state saved to the dashboard
 - **International EBPM policy essences**: compare across 5 axes — evidence transparency, design credibility, context fit, equity impact, transferability
 - **Data exchange (SQLite .db)**: exports a normalized standard format and verifies format/counts in the browser (no server upload)
-- **Authentication & role control**: administrator password login + procedure-level admin access control on tRPC
+- **Authentication & role control**: username + password login + procedure-level admin access control on tRPC
 - **Modern SPA**: Vite + React 19 + TypeScript + tRPC v11 + drizzle-orm (Cloudflare D1)
 
 ## Quick Start
@@ -223,7 +223,7 @@ pnpm db:migrate       # apply migrations to D1 (--remote)
 
 ```sh
 pnpm check        # type check (tsc --noEmit)
-pnpm test         # Vitest (27 tests: business API / startup refresh / migration replay / data exchange)
+pnpm test         # Vitest (31 tests: business API / startup refresh / password hashing / migration replay / data exchange)
 pnpm screenshot   # Playwright visual verification of every page (output to screenshots/)
 ```
 

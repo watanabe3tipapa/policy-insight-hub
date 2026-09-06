@@ -60,7 +60,7 @@ policy-insight-hub は、データ台帳 → 指標辞書 → 観測 → レビ�
 - 情報収集連携（Kitesurf Worker）と起動時ステイル更新
 - 国際EBPM政策エッセンス（5評価軸での比較）
 - SQLite .db 形式でのデータ交換（ブラウザ内で検証可能）
-- 認証（管理者パスワードログイン）と tRPC ベースのプロシージャ単位アクセス制御
+- 認証（ユーザー名 + パスワードログイン）と tRPC ベースのプロシージャ単位アクセス制御
 - モダンSPA（Vite + React 19 + TypeScript + tRPC v11 + drizzle-orm + Cloudflare D1）
 
 クイックスタート
@@ -73,7 +73,7 @@ policy-insight-hub は、データ台帳 → 指標辞書 → 観測 → レビ�
 | pnpm | >= 9 | `pnpm --version` |
 
 pnpm の導入については本リポジトリの package.json が `pnpm@10.4.1+sha512...` を固定しています。
-Volta を利用するか corepack / npm で pnpm を導入してください（詳細は元 README を参照）。
+Volta を利用するか corepack / npm で pnpm を導入してください。
 
 リポジトリを取得する
 
@@ -155,7 +155,7 @@ policy-insight-hub/
 
 API（tRPC）
 
-主な namespace と procedures（README に記載の一覧）:
+主な namespace と procedures:
 
 - system: health / notifyOwner
 - auth: me / login / logout
@@ -196,7 +196,7 @@ Cloudflare Worker 連携
 
 テスト
 
-README に記載されているテスト関連コマンド:
+テスト関連コマンド:
 
 ```sh
 pnpm check        # 型検査（tsc --noEmit）
