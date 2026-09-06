@@ -2,7 +2,7 @@ const ITERATIONS = 210_000;
 const KEY_LENGTH_BYTES = 32;
 const SALT_LENGTH_BYTES = 16;
 const PREFIX = "pbkdf2";
-const HASH_ALG = "sha256";
+const HASH_ALG = "SHA-256";
 
 function toBase64(bytes: Uint8Array): string {
   let binary = "";

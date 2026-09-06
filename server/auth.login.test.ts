@@ -39,7 +39,7 @@ const adminUser = {
   id: 1,
   openId: "admin",
   username: "admin",
-  passwordHash: "pbkdf2:sha256:210000:AAAA:BBBB",
+  passwordHash: "pbkdf2:SHA-256:210000:AAAA:BBBB",
   name: "admin",
   email: null,
   loginMethod: "password",
