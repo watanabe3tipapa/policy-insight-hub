@@ -179,7 +179,7 @@ tRPC (`/api/trpc`):
 |---|---|---|
 | `system` | `health` / `notifyOwner` | health check / notify owner |
 | `auth` | `me` / `login` / `logout` | session lookup / password login / logout |
-| `policy.dataSources` | `list` / `create` / `update` | data registry |
+| `policy.sources` | `list` / `create` / `update` | data registry |
 | `policy.indicators` | `list` / `create` / `update` | indicator dictionary |
 | `policy.indicators.observations` | `list` / `create` | time-series observations |
 | `policy.reviews` | `list` / `create` / `update` / `delete` | review logs |

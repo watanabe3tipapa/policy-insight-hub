@@ -159,7 +159,7 @@ API（tRPC）
 
 - system: health / notifyOwner
 - auth: me / login / logout
-- policy.dataSources: list / create / update
+- policy.sources: list / create / update
 - policy.indicators: list / create / update
 - policy.indicators.observations: list / create
 - policy.reviews: list / create / update / delete
