@@ -1,4 +1,6 @@
-const ITERATIONS = 210_000;
+// Cloudflare Workers WebCrypto caps PBKDF2 at 100,000 iterations.
+const ITERATIONS = 100_000;
+const MAX_ITERATIONS = 100_000;
 const KEY_LENGTH_BYTES = 32;
 const SALT_LENGTH_BYTES = 16;
 const PREFIX = "pbkdf2";
@@ -54,7 +56,7 @@ export async function verifyPassword(password: string, stored: string): Promise<
   if (scheme !== PREFIX || hashAlg !== HASH_ALG) return false;
 
   const iterations = Number(iterationsStr);
-  if (!Number.isInteger(iterations) || iterations < 1 || iterations > 10_000_000) return false;
+  if (!Number.isInteger(iterations) || iterations < 1 || iterations > MAX_ITERATIONS) return false;
 
   try {
     const salt = fromBase64(saltB64);

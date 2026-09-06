@@ -113,7 +113,7 @@ users / data_sources / indicators / indicator_observations / reviews / review_ac
 
 - 認証方式: **ユーザー名 + パスワードログイン**（Manus OAuth は廃止）。`auth.login({ username, password })` が `passwordAuth.authenticateWithPassword` で PBKDF2 検証し、成功時のみセッション JWT クッキーを発行（`sdk.signSession`、payload は `{ openId, name }`）
 - アカウントは初回ログイン時に自動作成（自己登録）。`username === ENV.adminUsername` のユーザーだけ `role: "admin"` になる
-- パスワードは `server/_core/password.ts` の PBKDF2（sha256・210,000 反復・16B salt）でハッシュし `users.passwordHash` に保存。平文は保存しない
+- パスワードは `server/_core/password.ts` の PBKDF2（SHA-256・100,000 反復・16B salt）でハッシュし `users.passwordHash` に保存。平文は保存しない（反復回数は Cloudflare Workers WebCrypto の上限 100,000 に合わせている）
 - tRPC プロシージャ: `publicProcedure` / `protectedProcedure`（要ログイン）/ `adminProcedure`（要 admin ロール）
 - `auth.me` は `ctx.user`（DB User）を返す。クライアントは `useAuth()` で `isAuthenticated` / `user.role === "admin"` を参照
 - 未認証で保護 API を叩くと `UNAUTHED_ERR_MSG`。クライアントは `DashboardLayout` が未認証時に `LoginForm` を表示し、`trpc.auth.login` の失敗メッセージを表示（pending 中はボタン disabled）
