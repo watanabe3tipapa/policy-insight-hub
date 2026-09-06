@@ -9,6 +9,8 @@ import {
 export const users = sqliteTable("users", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   openId: text("openId").notNull().unique(),
+  username: text("username").unique(),
+  passwordHash: text("passwordHash"),
   name: text("name"),
   email: text("email"),
   loginMethod: text("loginMethod"),

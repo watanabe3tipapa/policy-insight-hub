@@ -61,8 +61,7 @@ Node エントリは `process.env`、Worker エントリは bindings を渡す�
 | 変数 | 用途 |
 | --- | --- |
 | `JWT_SECRET` | セッション JWT 署名（シークレット、`wrangler secret put`） |
-| `ADMIN_PASSWORD` | 管理者パスワードログイン用（シークレット、`wrangler secret put`。未設定はログイン不可） |
-| `OWNER_OPEN_ID` | 管理者（admin ロール）の openId。未指定は空 |
+| `ADMIN_USERNAME` | 初回ログイン時に admin ロールで自動作成されるユーザー名 |
 | `BUILT_IN_FORGE_API_URL` | `https://forge.manus.ai` |
 | `BUILT_IN_FORGE_API_KEY` | シークレット（`wrangler secret put`） |
 | `VITE_API_URL` | クライアントが API を指す URL（ビルド時） |
@@ -84,9 +83,9 @@ Node エントリは `process.env`、Worker エントリは bindings を渡す�
 
 ### wrangler.toml
 - `name = "policy-insight-hub-api"`、`main = "server/worker/index.ts"`、`compatibility_date = "2026-08-18"`
-- `[vars]`: `OWNER_OPEN_ID`, `BUILT_IN_FORGE_API_URL`
+- `[vars]`: `ADMIN_USERNAME`, `BUILT_IN_FORGE_API_URL`
 - D1 binding: `binding = "DB"`、`database_id = "ac5229fc-bed8-4011-8c6b-fcda3e7274a8"`、`migrations_dir = "drizzle"`（`migrations_dir` は wrangler.toml トップレベル不可・`[[d1_databases]]` 内に置く）
-- `JWT_SECRET`, `BUILT_IN_FORGE_API_KEY`, `ADMIN_PASSWORD` はシークレット（`wrangler secret put` 済み・コミット禁止）
+- `JWT_SECRET`, `BUILT_IN_FORGE_API_KEY` はシークレット（`wrangler secret put` 済み・コミット禁止）
 
 ### クロスオリジン（分割デプロイ対応）
 - **CORS**: `server/_core/handler.ts` の `corsHeaders()` がリクエスト `Origin` をエコーし `Access-Control-Allow-Credentials: true` を付与。OPTIONS プリフライトは 204 を返す（`Authorization` ヘッダ許可）
@@ -112,11 +111,12 @@ users / data_sources / indicators / indicator_observations / reviews / review_ac
 
 ## 認証・アクセス制御
 
-- 認証方式: **単一管理者パスワードログイン**（Manus OAuth は廃止）。`auth.login({ password })` が `ENV.adminPassword` と照合し、一致時のみセッション JWT クッキーを発行（`sdk.signSession`、payload は `{ openId, name }`）
-- ログイン成功時は管理者ユーザーを `db.upsertUser` で保存（`openId = ENV.ownerOpenId || "local-admin"`、`name = "Toolsmith"`、`role: "admin"`、`loginMethod: "password"`）
+- 認証方式: **ユーザー名 + パスワードログイン**（Manus OAuth は廃止）。`auth.login({ username, password })` が `passwordAuth.authenticateWithPassword` で PBKDF2 検証し、成功時のみセッション JWT クッキーを発行（`sdk.signSession`、payload は `{ openId, name }`）
+- アカウントは初回ログイン時に自動作成（自己登録）。`username === ENV.adminUsername` のユーザーだけ `role: "admin"` になる
+- パスワードは `server/_core/password.ts` の PBKDF2（sha256・210,000 反復・16B salt）でハッシュし `users.passwordHash` に保存。平文は保存しない
 - tRPC プロシージャ: `publicProcedure` / `protectedProcedure`（要ログイン）/ `adminProcedure`（要 admin ロール）
 - `auth.me` は `ctx.user`（DB User）を返す。クライアントは `useAuth()` で `isAuthenticated` / `user.role === "admin"` を参照
-- 未認証で保護 API を叩くと `UNAUTHED_ERR_MSG`。クライアントは `DashboardLayout` のログインフォームで `login(password)` を呼び、失敗時はエラーを表示（`loginPending` 中はボタン disabled）
+- 未認証で保護 API を叩くと `UNAUTHED_ERR_MSG`。クライアントは `DashboardLayout` が未認証時に `LoginForm` を表示し、`trpc.auth.login` の失敗メッセージを表示（pending 中はボタン disabled）
 - ログアウト: `auth.logout` が Set-Cookie（maxAge -1）でセッションを破棄
 - `main.tsx` は `credentials: "include"` で fetch する（GH Pages と Worker の別オリジン対応）。OAuth の Bearer / sessionStorage フォールバックは削除
 
@@ -162,7 +162,7 @@ users / data_sources / indicators / indicator_observations / reviews / review_ac
 
 ## 実装履歴（この回までの主要変更）
 
-- **OAuth 廃止 → 単一管理者パスワードログイン**: `server/_core/oauth.ts`・`server/_core/types/manusTypes.ts`・`client/src/const.ts` を削除。`sdk.ts` を `SessionService`（`signSession`/`verifySession`/`authenticateRequest`）に書き換え、OAuth/axios/Bearer を除去。`handler.ts` の `/api/oauth/start`・`/api/oauth/callback` ルートと `index.ts` のマウントを削除。`routers.ts` に `auth.login` を追加（`ADMIN_PASSWORD` 照合 → 管理者 upsert → セッションクッキー）。セッション payload を `{ openId, name }` に簡素化（`appId` 廃止）。`shared/const.ts` から `OAUTH_STATE_COOKIE`/`encodeOAuthState`/`decodeOAuthState`/`OAuthState` を除去。`main.tsx` の未認証リダイレクト購読・Bearer/sessionStorage フォールバックを削除し `credentials: "include"` に統一。`useAuth()` に `login(password)`/`loginPending` を追加し `DashboardLayout` をパスワードフォーム化。`handler.cors.test.ts` から OAuth 2 テストを除去し `auth.login.test.ts`（3 テスト）を新設（合計 27）。env/docs（`.env.example`/`wrangler.toml`/`deploy-pages.yml`/README/README_EN/DEV-MEMO）から `VITE_APP_ID`/`VITE_OAUTH_PORTAL_URL`/`OAUTH_SERVER_URL`/`SPA_ORIGIN` を削除し `ADMIN_PASSWORD` を追加
+- **OAuth 廃止 → ユーザー名+パスワードログイン**: `server/_core/oauth.ts`・`server/_core/types/manusTypes.ts`・`client/src/const.ts` を削除。`sdk.ts` を `SessionService`（`signSession`/`verifySession`/`authenticateRequest`）に書き換え、OAuth/axios/Bearer を除去。`handler.ts` の `/api/oauth/start`・`/api/oauth/callback` ルートと `index.ts` のマウントを削除。`routers.ts` の `auth.login` を username+password 化（`passwordAuth.authenticateWithPassword` の PBKDF2 検証 → セッションクッキー）。`password.ts`/`passwordAuth.ts` を新設し、`users` に `username`/`passwordHash` を追加（migration `0001_breezy_proudstar`）。セッション payload を `{ openId, name }` に簡素化（`appId` 廃止）。`shared/const.ts` から `OAUTH_STATE_COOKIE`/`encodeOAuthState`/`decodeOAuthState`/`OAuthState` を除去。`main.tsx` の未認証リダイレクト購読・Bearer/sessionStorage フォールバックを削除し `credentials: "include"` に統一。`useAuth()` から login 系を分離し、`DashboardLayout` が未認証時に `LoginForm`（username+password）を表示。`auth.login.test.ts`（3 テスト）を username+password 用に書き換え。env/docs を `ADMIN_USERNAME` ベースに更新
 
 - **v1.1.1**: リポジトリを public 化、GitHub Pages を有効化（`build_type: workflow`）。Pages デプロイワークフローの actions を Node 24 対応の最新メジャーへ更新（`checkout`→v5 / `setup-node`→v5 / `pnpm/action-setup`→v6 / `upload-pages-artifact`→v5 / `deploy-pages`→v5）。`capture-screens.mjs` に Playwright bundled chromium 未対応時のシステム Chrome フォールバックを追加。package.json の version を v1.1.1 に更新
 

@@ -1,6 +1,16 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("./_core/passwordAuth", async importOriginal => {
+  const actual = await importOriginal<typeof import("./_core/passwordAuth")>();
+  return {
+    ...actual,
+    authenticateWithPassword: vi.fn(),
+  };
+});
+
 import { configureEnv } from "./_core/env";
 import { appRouter } from "./routers";
+import { authenticateWithPassword } from "./_core/passwordAuth";
 import { COOKIE_NAME } from "../shared/const";
 import type { TrpcContext } from "./_core/context";
 
@@ -25,35 +35,51 @@ function createContext(): { ctx: TrpcContext; setCookies: string[] } {
   return { ctx, setCookies };
 }
 
-describe("auth.login (admin password)", () => {
+const adminUser = {
+  id: 1,
+  openId: "admin",
+  username: "admin",
+  passwordHash: "pbkdf2:sha256:210000:AAAA:BBBB",
+  name: "admin",
+  email: null,
+  loginMethod: "password",
+  role: "admin",
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  lastSignedIn: new Date(),
+};
+
+describe("auth.login (username + password)", () => {
+  it("rejects credentials that fail validation", async () => {
+    configureEnv({ ADMIN_USERNAME: "admin", JWT_SECRET: "secret" });
+    const { ctx } = createContext();
+    const caller = appRouter.createCaller(ctx);
+
+    await expect(
+      caller.auth.login({ username: "a", password: "short" })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
   it("rejects a wrong password", async () => {
-    configureEnv({ ADMIN_PASSWORD: "correct-horse", JWT_SECRET: "secret" });
+    configureEnv({ ADMIN_USERNAME: "admin", JWT_SECRET: "secret" });
+    vi.mocked(authenticateWithPassword).mockResolvedValueOnce(null);
     const { ctx } = createContext();
     const caller = appRouter.createCaller(ctx);
 
-    await expect(caller.auth.login({ password: "wrong" })).rejects.toMatchObject({
-      code: "UNAUTHORIZED",
-    });
+    await expect(
+      caller.auth.login({ username: "admin", password: "wrong-password" })
+    ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
   });
 
-  it("rejects login when ADMIN_PASSWORD is unset", async () => {
-    configureEnv({ ADMIN_PASSWORD: "", JWT_SECRET: "secret" });
-    const { ctx } = createContext();
-    const caller = appRouter.createCaller(ctx);
-
-    await expect(caller.auth.login({ password: "anything" })).rejects.toMatchObject({
-      code: "UNAUTHORIZED",
-    });
-  });
-
-  it("issues a session cookie on a correct password", async () => {
-    configureEnv({ ADMIN_PASSWORD: "correct-horse", JWT_SECRET: "secret" });
+  it("issues a session cookie on valid credentials", async () => {
+    configureEnv({ ADMIN_USERNAME: "admin", JWT_SECRET: "secret" });
+    vi.mocked(authenticateWithPassword).mockResolvedValueOnce(adminUser);
     const { ctx, setCookies } = createContext();
     const caller = appRouter.createCaller(ctx);
 
-    const result = await caller.auth.login({ password: "correct-horse" });
+    const result = await caller.auth.login({ username: "admin", password: "correct-password" });
 
-    expect(result).toEqual({ success: true });
+    expect(result.user).toMatchObject({ username: "admin", role: "admin" });
     expect(setCookies).toHaveLength(1);
     expect(setCookies[0]).toContain(`${COOKIE_NAME}=`);
     expect(setCookies[0]).toContain("Path=/");

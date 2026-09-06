@@ -27,6 +27,7 @@ import {
   type Review,
   type ReviewAction,
   type SourceCandidate,
+  type User,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -79,7 +80,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   if (user.role !== undefined) {
     values.role = user.role;
     updateSet.role = user.role;
-  } else if (user.openId === ENV.ownerOpenId) {
+  } else if (user.openId === ENV.adminUsername) {
     values.role = "admin";
     updateSet.role = "admin";
   }
@@ -93,6 +94,38 @@ export async function getUserByOpenId(openId: string) {
   const db = await getDb();
   if (!db) return undefined;
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
+  return result[0];
+}
+
+export async function getUserByUsername(username: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(users).where(eq(users.username, username)).limit(1);
+  return result[0];
+}
+
+export async function createPasswordUser(input: {
+  username: string;
+  passwordHash: string;
+  role: "admin" | "user";
+}): Promise<User | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const now = new Date();
+  const result = await db
+    .insert(users)
+    .values({
+      openId: input.username,
+      username: input.username,
+      passwordHash: input.passwordHash,
+      name: input.username,
+      loginMethod: "password",
+      role: input.role,
+      createdAt: now,
+      updatedAt: now,
+      lastSignedIn: now,
+    })
+    .returning();
   return result[0];
 }
 

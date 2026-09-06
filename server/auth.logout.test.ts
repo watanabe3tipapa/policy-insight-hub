@@ -15,6 +15,8 @@ function createAuthContext(): { ctx: TrpcContext; setCookies: string[] } {
     email: "sample@example.com",
     name: "Sample User",
     loginMethod: "manus",
+    username: null,
+    passwordHash: null,
     role: "user",
     createdAt: new Date(),
     updatedAt: new Date(),

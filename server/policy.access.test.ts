@@ -11,6 +11,8 @@ function createUserContext(role: "user" | "admin"): TrpcContext {
       name: "Policy Test User",
       email: "policy-test@example.com",
       loginMethod: "manus",
+      username: null,
+      passwordHash: null,
       role,
       createdAt: new Date(),
       updatedAt: new Date(),

@@ -8,7 +8,7 @@ import type { TrpcContext } from "./_core/context";
 
 function createContext(): TrpcContext {
   return {
-    user: { id: 55, openId: "audit-user", name: "Audit User", email: null, loginMethod: "manus", role: "admin", createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() },
+    user: { id: 55, openId: "audit-user", name: "Audit User", email: null, loginMethod: "manus", username: null, passwordHash: null, role: "admin", createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() },
     req: new Request("https://example.com/api/trpc") as TrpcContext["req"],
     resHeaders: new Headers(),
   };

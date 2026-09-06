@@ -10,6 +10,8 @@ function createUserContext(role: "user" | "admin"): TrpcContext {
       name: "Kitesurf Test User",
       email: "kitesurf-test@example.com",
       loginMethod: "manus",
+      username: null,
+      passwordHash: null,
       role,
       createdAt: new Date(),
       updatedAt: new Date(),

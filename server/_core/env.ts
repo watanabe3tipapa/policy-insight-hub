@@ -1,7 +1,6 @@
 export const ENV = {
   cookieSecret: "",
-  ownerOpenId: "",
-  adminPassword: "",
+  adminUsername: "",
   isProduction: false,
   forgeApiUrl: "",
   forgeApiKey: "",
@@ -16,8 +15,7 @@ type EnvRecord = Record<string, string | undefined>;
  */
 export function configureEnv(source: EnvRecord) {
   ENV.cookieSecret = source.JWT_SECRET ?? "";
-  ENV.ownerOpenId = source.OWNER_OPEN_ID ?? "";
-  ENV.adminPassword = source.ADMIN_PASSWORD ?? "";
+  ENV.adminUsername = source.ADMIN_USERNAME ?? "";
   ENV.isProduction = source.NODE_ENV === "production";
   ENV.forgeApiUrl = source.BUILT_IN_FORGE_API_URL ?? "";
   ENV.forgeApiKey = source.BUILT_IN_FORGE_API_KEY ?? "";

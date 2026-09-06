@@ -18,7 +18,7 @@ import { toStartupAuditView } from "../client/src/lib/startupAudit";
 
 function createAuditContext(): TrpcContext {
   return {
-    user: { id: 96, openId: "startup-audit", name: "Startup Audit", email: null, loginMethod: "manus", role: "admin", createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() },
+    user: { id: 96, openId: "startup-audit", name: "Startup Audit", email: null, loginMethod: "manus", username: null, passwordHash: null, role: "admin", createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() },
     req: new Request("https://example.com/api/trpc") as TrpcContext["req"],
     resHeaders: new Headers(),
   };
